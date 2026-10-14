@@ -1,0 +1,1404 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DynamaNotes — Professional Digital Note-Taking</title>
+    <link rel="icon" type="image/svg+xml" href="public/dynama-icon.svg" />
+    <style>
+      :root {
+        --font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        --bg-app: #000000;
+        --bg-sidebar: #121214;
+        --bg-main: #09090b;
+        --bg-toolbar: #1c1c24;
+        --border: #27272a;
+        --border-active: #38bdf8;
+        --accent-teal: #0d9488;
+        --accent-blue: #0284c7;
+        --text: #ffffff;
+        --text-muted: #94a3b8;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: var(--font);
+        background: var(--bg-app);
+        color: var(--text);
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        user-select: none;
+      }
+
+      /* View Navigation */
+      .view { display: none; width: 100%; height: 100%; }
+      .view.active { display: flex; }
+
+      /* SVG Icon Helper */
+      .svg-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        pointer-events: none;
+      }
+
+      /* ========================================================
+         1. LIBRARY VIEW (Screenshot 1)
+         ======================================================== */
+      .library-view { flex-direction: row; }
+      .sidebar {
+        width: 220px;
+        background: var(--bg-sidebar);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        padding: 16px 12px;
+        flex-shrink: 0;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 4px 8px 18px 8px;
+        font-size: 17px;
+        font-weight: 700;
+        color: #fff;
+        border-bottom: 1px solid #1a1a20;
+        margin-bottom: 8px;
+      }
+      .brand-badge {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        background: linear-gradient(135deg, #0284c7, #38bdf8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .nav-btn {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 9px 12px;
+        border-radius: 8px;
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        text-align: left;
+        margin-bottom: 4px;
+        transition: all 0.15s ease;
+      }
+      .nav-btn:hover { background: #1c1c20; color: #fff; }
+      .nav-btn.active { background: #1d4ed8; color: #fff; font-weight: 600; }
+
+      .main-lib {
+        flex: 1;
+        background: var(--bg-main);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .lib-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 28px 12px 28px;
+        border-bottom: 1px solid #18181b;
+      }
+      .lib-title { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+      .lib-actions { display: flex; align-items: center; gap: 12px; }
+      .search-box {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #18181b;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 6px 14px;
+        width: 220px;
+      }
+      .search-input {
+        background: transparent;
+        border: none;
+        color: #fff;
+        font-size: 13px;
+        outline: none;
+        width: 100%;
+      }
+      .btn-new {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--accent-blue);
+        color: #fff;
+        border: none;
+        padding: 7px 18px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 2px 10px rgba(2, 132, 199, 0.4);
+        transition: transform 0.15s ease;
+      }
+      .btn-new:hover { background: #0369a1; transform: translateY(-1px); }
+      .filter-bar {
+        padding: 10px 28px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .chip {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(56, 189, 248, 0.1);
+        border: 1px solid rgba(56, 189, 248, 0.3);
+        color: #38bdf8;
+        padding: 4px 12px;
+        border-radius: 14px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .chip-dot { width: 6px; height: 6px; border-radius: 50%; background: #38bdf8; }
+      .cards-grid {
+        flex: 1;
+        padding: 20px 28px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 26px 20px;
+        overflow-y: auto;
+      }
+      .nb-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        cursor: pointer;
+        transition: transform 0.15s ease;
+      }
+      .nb-card:hover { transform: translateY(-3px); }
+      .nb-thumb {
+        width: 110px;
+        height: 145px;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+        position: relative;
+        overflow: hidden;
+      }
+      .nb-corner {
+        position: absolute;
+        top: 0; left: 0;
+        width: 16px; height: 16px;
+        background: linear-gradient(135deg, #18181b 50%, rgba(255,255,255,0.4) 50%);
+        border-bottom-right-radius: 3px;
+      }
+      .nb-spine {
+        position: absolute;
+        top: 0; left: 0;
+        width: 5px; height: 100%;
+        background: linear-gradient(to right, rgba(0,0,0,0.3), transparent);
+      }
+      .nb-star {
+        position: absolute;
+        top: 6px; right: 6px;
+        width: 20px; height: 20px;
+        border-radius: 50%;
+        background: rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(255,255,255,0.7);
+      }
+      .nb-star.active { color: #f59e0b; background: rgba(245, 158, 11, 0.2); }
+      .nb-title {
+        font-size: 13px;
+        font-weight: 600;
+        margin-top: 8px;
+        color: #f1f5f9;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 100%;
+      }
+      .nb-date { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+      /* ========================================================
+         2. EDITOR VIEW (Screenshot 2)
+         ======================================================== */
+      .editor-view { flex-direction: column; }
+      .ed-header {
+        height: 44px;
+        background: #172554; /* Goodnotes deep blue header */
+        border-bottom: 1px solid #1e3a8a;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 16px;
+        flex-shrink: 0;
+        z-index: 60;
+      }
+      .ed-btn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: transparent;
+        border: none;
+        color: #cbd5e1;
+        padding: 6px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        transition: background 0.15s ease;
+      }
+      .ed-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+      .doc-tab {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(0,0,0,0.3);
+        border: 1px solid rgba(255,255,255,0.12);
+        padding: 4px 14px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #fff;
+      }
+      .ed-main {
+        flex: 1;
+        background: #101014;
+        position: relative;
+        overflow: auto;
+        display: flex;
+        justify-content: center;
+        padding: 72px 40px 60px 40px;
+      }
+
+      /* Floating Toolbar matching Screenshot 2 */
+      .floating-toolbar {
+        position: absolute;
+        top: 14px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--bg-toolbar);
+        border: 1px solid #333342;
+        border-radius: 30px;
+        padding: 4px 10px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+        z-index: 50;
+      }
+      .t-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: transparent;
+        border: none;
+        color: #cbd5e1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        position: relative;
+      }
+      .t-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+      /* Active teal circular background matching Screenshot 2 */
+      .t-btn.active {
+        background: var(--accent-teal);
+        color: #fff;
+        box-shadow: 0 2px 10px rgba(13, 148, 136, 0.5);
+      }
+      .t-divider { width: 1px; height: 20px; background: #333342; margin: 0 6px; }
+
+      /* Thickness Presets with Live Visual Dots */
+      .size-preset-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: transparent;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+      .size-preset-btn:hover { background: rgba(255,255,255,0.1); }
+      .size-preset-btn.active { background: rgba(255,255,255,0.18); }
+      .size-circle {
+        border-radius: 50%;
+        background: #cbd5e1;
+        transition: all 0.15s ease;
+      }
+
+      /* Color Presets */
+      .dot-btn {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        border: 1.5px solid rgba(255,255,255,0.3);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.15s ease;
+      }
+      .dot-btn:hover { transform: scale(1.15); }
+      .dot-btn.active { border-color: #fff; box-shadow: 0 0 8px rgba(255,255,255,0.7); }
+      .dot-inner { width: 4px; height: 4px; border-radius: 50%; background: #fff; }
+
+      .color-wheel {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red);
+        border: 1.5px solid rgba(255,255,255,0.4);
+        position: relative;
+        cursor: pointer;
+      }
+      .color-wheel input {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+      }
+
+      /* Secondary Shape Submenu */
+      .shape-submenu {
+        display: none;
+        position: absolute;
+        top: 48px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #1e1e24;
+        border: 1px solid #333342;
+        border-radius: 12px;
+        padding: 6px;
+        gap: 6px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+        z-index: 60;
+      }
+      .shape-submenu.show { display: flex; }
+      .sub-tool-btn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        background: #141418;
+        border: 1px solid #27272a;
+        border-radius: 6px;
+        color: #cbd5e1;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+      }
+      .sub-tool-btn:hover { background: #272732; color: #fff; }
+      .sub-tool-btn.active { background: rgba(56, 189, 248, 0.15); border-color: #38bdf8; color: #38bdf8; }
+
+      /* Thickness Slider Popup */
+      .thickness-popup {
+        display: none;
+        position: absolute;
+        top: 48px;
+        right: 120px;
+        background: #1e1e24;
+        border: 1px solid #333342;
+        border-radius: 12px;
+        padding: 12px 16px;
+        width: 220px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+        z-index: 60;
+      }
+      .thickness-popup.show { display: block; }
+      .slider-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+      }
+      .thickness-preview-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 40px;
+        margin-top: 8px;
+        background: #141418;
+        border-radius: 6px;
+      }
+      .thickness-preview-circle {
+        border-radius: 50%;
+        background: var(--text);
+      }
+
+      /* Warm Ivory Grid Paper Canvas (Screenshot 2) */
+      .paper-sheet {
+        width: 800px;
+        height: 1100px;
+        background: #faf8f0; /* Goodnotes signature warm ivory grid paper */
+        border-radius: 4px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.6), 0 1px 4px rgba(0,0,0,0.4);
+        position: relative;
+        flex-shrink: 0;
+        cursor: crosshair;
+        overflow: hidden;
+      }
+      canvas {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        touch-action: none;
+      }
+
+      /* Snap Toast Indicator */
+      .snap-toast {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(13, 148, 136, 0.95);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 6px 14px;
+        border-radius: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        display: none;
+        align-items: center;
+        gap: 6px;
+        z-index: 100;
+        animation: fadeIn 0.2s ease;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translate(-50%, 6px); }
+        to { opacity: 1; transform: translate(-50%, 0); }
+      }
+
+      /* Modal */
+      .modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.7);
+        backdrop-filter: blur(4px);
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
+      .modal.show { display: flex; }
+      .modal-box {
+        width: 440px;
+        background: #18181b;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 22px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- SVG SYMBOL DEFINITIONS (No Emojis!) -->
+    <svg style="display: none;">
+      <defs>
+        <!-- Documents Icon -->
+        <g id="icon-docs">
+          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+          <path d="M6 6h10" /><path d="M6 10h10" />
+        </g>
+        <!-- Star Icon -->
+        <g id="icon-star">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+        </g>
+        <!-- Shared Icon -->
+        <g id="icon-shared">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </g>
+        <!-- Marketplace Icon -->
+        <g id="icon-market">
+          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+          <line x1="3" x2="21" y1="6" y2="6" />
+          <path d="M16 10a4 4 0 0 1-8 0" />
+        </g>
+        <!-- Pen Tool Icon -->
+        <g id="icon-pen">
+          <path d="M12 19l7-7 3 3-7 7-3-3z" />
+          <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
+          <path d="M2 2l7.586 7.586" /><circle cx="11" cy="11" r="1.5" />
+        </g>
+        <!-- Fine Pen Icon -->
+        <g id="icon-finepen">
+          <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+          <path d="m15 5 4 4" />
+        </g>
+        <!-- Highlighter Icon -->
+        <g id="icon-highlighter">
+          <path d="m9 11-6 6v3h3l6-6" />
+          <path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4" />
+        </g>
+        <!-- Eraser Icon -->
+        <g id="icon-eraser">
+          <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
+          <path d="M22 21H7" /><path d="m5 11 9 9" />
+        </g>
+        <!-- Shape Tool Icon -->
+        <g id="icon-shape">
+          <circle cx="8" cy="8" r="4" />
+          <rect width="8" height="8" x="13" y="13" rx="1.5" />
+          <path d="M18 5 15 10h6Z" />
+        </g>
+        <!-- Lasso Icon -->
+        <g id="icon-lasso">
+          <path d="M7 22a5 5 0 0 1-2-4c0-3.8 4.2-6.2 8-6 2.5.1 4.5 1 5.5 2.5" />
+          <path d="M19 19a4 4 0 0 1-4 3c-1.5 0-3-.5-4-1.5" />
+          <circle cx="12" cy="7" r="5" stroke-dasharray="3 3" />
+        </g>
+        <!-- Undo Icon -->
+        <g id="icon-undo">
+          <path d="M3 7v6h6" />
+          <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+        </g>
+        <!-- Redo Icon -->
+        <g id="icon-redo">
+          <path d="M21 7v6h-6" />
+          <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7" />
+        </g>
+        <!-- Search Icon -->
+        <g id="icon-search">
+          <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+        </g>
+        <!-- Plus Icon -->
+        <g id="icon-plus">
+          <path d="M5 12h14" /><path d="M12 5v14" />
+        </g>
+        <!-- Arrow Left -->
+        <g id="icon-back">
+          <path d="m12 19-7-7 7-7" /><path d="M19 12H5" />
+        </g>
+        <!-- Export Icon -->
+        <g id="icon-export">
+          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+          <polyline points="16 6 12 2 8 6" /><line x1="12" x2="12" y1="2" y2="15" />
+        </g>
+        <!-- Trash Icon -->
+        <g id="icon-trash">
+          <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+        </g>
+      </defs>
+    </svg>
+
+    <!-- 1. LIBRARY VIEW -->
+    <div id="view-library" class="view active library-view">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-badge">
+            <svg class="svg-icon" style="color: #fff;"><use href="#icon-docs"></use></svg>
+          </div>
+          <span>DynamaNotes</span>
+        </div>
+        <button class="nav-btn active">
+          <svg class="svg-icon"><use href="#icon-docs"></use></svg>
+          <span>Documents</span>
+        </button>
+        <button class="nav-btn">
+          <svg class="svg-icon"><use href="#icon-star"></use></svg>
+          <span>Favorites</span>
+        </button>
+        <button class="nav-btn">
+          <svg class="svg-icon"><use href="#icon-shared"></use></svg>
+          <span>Shared</span>
+        </button>
+        <button class="nav-btn">
+          <svg class="svg-icon"><use href="#icon-market"></use></svg>
+          <span>Marketplace</span>
+        </button>
+      </aside>
+
+      <main class="main-lib">
+        <header class="lib-topbar">
+          <div class="lib-title">Documents</div>
+          <div class="lib-actions">
+            <div class="search-box">
+              <svg class="svg-icon" style="width:16px; height:16px; color:#64748b;"><use href="#icon-search"></use></svg>
+              <input type="text" placeholder="Search notes..." class="search-input" id="search-input" />
+            </div>
+            <button class="btn-new" id="btn-open-modal">
+              <svg class="svg-icon" style="width:16px; height:16px;"><use href="#icon-plus"></use></svg>
+              <span>New</span>
+            </button>
+          </div>
+        </header>
+
+        <div class="filter-bar">
+          <span class="chip"><span class="chip-dot"></span> All</span>
+        </div>
+
+        <div class="cards-grid" id="notebook-grid">
+          <!-- Dynamically populated cards -->
+        </div>
+      </main>
+    </div>
+
+    <!-- 2. EDITOR VIEW -->
+    <div id="view-editor" class="view editor-view">
+      <header class="ed-header">
+        <div style="display: flex; gap: 8px;">
+          <button class="ed-btn" id="btn-back">
+            <svg class="svg-icon"><use href="#icon-back"></use></svg>
+            <span>Documents</span>
+          </button>
+        </div>
+        <div class="doc-tab">
+          <svg class="svg-icon" style="width:15px; height:15px; color:#38bdf8;"><use href="#icon-docs"></use></svg>
+          <span id="doc-tab-title">Math</span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="ed-btn" id="btn-clear" title="Clear Canvas">
+            <svg class="svg-icon"><use href="#icon-trash"></use></svg>
+            <span>Clear</span>
+          </button>
+          <button class="ed-btn" id="btn-export" title="Export PNG">
+            <svg class="svg-icon"><use href="#icon-export"></use></svg>
+            <span>Export PNG</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="ed-main">
+        <!-- Floating Centered Toolbar matching Screenshot 2 -->
+        <div class="floating-toolbar">
+          <!-- Lasso -->
+          <button class="t-btn" data-tool="lasso" title="Lasso Selection">
+            <svg class="svg-icon"><use href="#icon-lasso"></use></svg>
+          </button>
+
+          <!-- Fountain Pen -->
+          <button class="t-btn active" data-tool="pen" title="Fountain Pen (Pressure & Velocity Smooth)">
+            <svg class="svg-icon"><use href="#icon-pen"></use></svg>
+          </button>
+
+          <!-- Ballpoint Pen -->
+          <button class="t-btn" data-tool="finepen" title="Ballpoint Pen (Uniform Line)">
+            <svg class="svg-icon"><use href="#icon-finepen"></use></svg>
+          </button>
+
+          <!-- Highlighter -->
+          <button class="t-btn" data-tool="highlighter" title="Highlighter (Renders Behind Ink)">
+            <svg class="svg-icon"><use href="#icon-highlighter"></use></svg>
+          </button>
+
+          <!-- Eraser -->
+          <button class="t-btn" data-tool="eraser" title="Eraser (Tap to erase entire stroke, or scrub)">
+            <svg class="svg-icon"><use href="#icon-eraser"></use></svg>
+          </button>
+
+          <!-- Shape Tool -->
+          <button class="t-btn" data-tool="shape" id="btn-shape-tool" title="Shape Tool (Click to select shape, or hold stroke to snap!)">
+            <svg class="svg-icon"><use href="#icon-shape"></use></svg>
+          </button>
+
+          <div class="t-divider"></div>
+
+          <!-- Thickness Presets with Live Visual Dots -->
+          <button class="size-preset-btn" data-size="2" title="Thin (2px)">
+            <div class="size-circle" style="width: 4px; height: 4px;"></div>
+          </button>
+          <button class="size-preset-btn active" data-size="5" title="Medium (5px)">
+            <div class="size-circle" style="width: 8px; height: 8px;"></div>
+          </button>
+          <button class="size-preset-btn" data-size="10" title="Bold (10px)">
+            <div class="size-circle" style="width: 14px; height: 14px;"></div>
+          </button>
+          <!-- Thickness Slider Button -->
+          <button class="t-btn" id="btn-thickness-toggle" title="Custom Thickness Slider">
+            <svg class="svg-icon" style="width: 14px; height: 14px;"><circle cx="12" cy="12" r="6" /></svg>
+          </button>
+
+          <div class="t-divider"></div>
+
+          <!-- Color Presets -->
+          <div class="dot-btn active" data-color="#000000" style="background:#000000;" title="Black">
+            <div class="dot-inner"></div>
+          </div>
+          <div class="dot-btn" data-color="#2563eb" style="background:#2563eb;" title="Royal Blue"></div>
+          <div class="dot-btn" data-color="#dc2626" style="background:#dc2626;" title="Crimson Red"></div>
+          <div class="dot-btn" data-color="#059669" style="background:#059669;" title="Emerald Green"></div>
+          <div class="dot-btn" data-color="#0891b2" style="background:#0891b2;" title="Teal / Cyan"></div>
+          <div class="dot-btn" data-color="#7c3aed" style="background:#7c3aed;" title="Purple"></div>
+
+          <!-- Full Color Wheel Picker -->
+          <div class="color-wheel" title="Custom Color Spectrum">
+            <input type="color" id="native-color-picker" value="#000000" />
+          </div>
+
+          <div class="t-divider"></div>
+
+          <!-- Undo / Redo -->
+          <button class="t-btn" id="btn-undo" title="Undo (Ctrl/Cmd+Z)">
+            <svg class="svg-icon"><use href="#icon-undo"></use></svg>
+          </button>
+          <button class="t-btn" id="btn-redo" title="Redo (Ctrl/Cmd+Y)">
+            <svg class="svg-icon"><use href="#icon-redo"></use></svg>
+          </button>
+        </div>
+
+        <!-- Secondary Shape Dropdown Submenu -->
+        <div class="shape-submenu" id="shape-submenu">
+          <button class="sub-tool-btn active" data-shape="auto">
+            <span>Hold-to-Snap (Auto)</span>
+          </button>
+          <button class="sub-tool-btn" data-shape="circle">
+            <span>Circle ⭕</span>
+          </button>
+          <button class="sub-tool-btn" data-shape="rectangle">
+            <span>Rectangle ⬛</span>
+          </button>
+          <button class="sub-tool-btn" data-shape="line">
+            <span>Straight Line 📏</span>
+          </button>
+          <button class="sub-tool-btn" data-shape="triangle">
+            <span>Triangle 🔺</span>
+          </button>
+        </div>
+
+        <!-- Custom Thickness Slider Popup -->
+        <div class="thickness-popup" id="thickness-popup">
+          <div class="slider-label">
+            <span>STROKE THICKNESS</span>
+            <span id="thickness-display">5px</span>
+          </div>
+          <input type="range" min="1" max="35" step="0.5" value="5" id="thickness-slider" style="width: 100%; accent-color: #38bdf8;" />
+          <div class="thickness-preview-container">
+            <div class="thickness-preview-circle" id="thickness-preview-circle" style="width: 5px; height: 5px;"></div>
+          </div>
+        </div>
+
+        <!-- Snap Toast Feedback -->
+        <div class="snap-toast" id="snap-toast">
+          <svg class="svg-icon" style="width:14px; height:14px;"><use href="#icon-shape"></use></svg>
+          <span id="snap-toast-text">Snapped to Circle!</span>
+        </div>
+
+        <!-- Paper Canvas Area matching Screenshot 2 -->
+        <div class="paper-sheet" id="paper">
+          <!-- Background paper template -->
+          <canvas id="bg-canvas" width="800" height="1100"></canvas>
+          <!-- Committed strokes -->
+          <canvas id="strokes-canvas" width="800" height="1100"></canvas>
+          <!-- Active live drawing scratch canvas -->
+          <canvas id="active-canvas" width="800" height="1100"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- NEW NOTEBOOK MODAL -->
+    <div class="modal" id="modal-new">
+      <div class="modal-box">
+        <h3 style="margin-bottom: 14px; font-size: 16px;">Create New Notebook</h3>
+        <input type="text" id="new-nb-title" value="My Notes" class="search-input" style="background:#121214; border:1px solid #27272a; border-radius:8px; padding:10px; width: 100%; margin-bottom: 16px;" />
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button class="ed-btn" id="btn-cancel-modal">Cancel</button>
+          <button class="btn-new" id="btn-confirm-modal">Create</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      /* ========================================================
+         ULTRA-SMOOTH DIGITAL INK ENGINE (GOODNOTES CALIBER)
+         ======================================================== */
+
+      // Notebooks State
+      let notebooks = [
+        { id: '1', title: 'Math', color: '#e0f2fe', date: 'Today at 12:07' },
+        { id: '2', title: 'Physics P5', color: '#0f172a', date: 'Today at 10:30' },
+        { id: '3', title: 'CS61A', color: '#1e293b', date: 'Yesterday' },
+        { id: '4', title: 'Statistics', color: '#f1f5f9', date: 'Oct 12' },
+        { id: '5', title: 'Français', color: '#dbeafe', date: 'Oct 10' },
+        { id: '6', title: 'Archive', color: '#38bdf8', date: 'Oct 8' }
+      ];
+      let activeNotebook = notebooks[0];
+
+      // Drawing Tools State
+      let currentTool = 'pen'; // 'pen' | 'finepen' | 'highlighter' | 'eraser' | 'shape' | 'lasso'
+      let activeShapeMode = 'auto'; // 'auto' | 'circle' | 'rectangle' | 'line' | 'triangle'
+      let currentSize = 5;
+      let currentColor = '#000000';
+
+      // Canvases
+      const bgCanvas = document.getElementById('bg-canvas');
+      const strokesCanvas = document.getElementById('strokes-canvas');
+      const activeCanvas = document.getElementById('active-canvas');
+
+      const bgCtx = bgCanvas.getContext('2d');
+      const sCtx = strokesCanvas.getContext('2d');
+      const aCtx = activeCanvas.getContext('2d');
+
+      // Strokes & Undo Stack
+      let strokes = [];
+      let undoStack = [];
+      let redoStack = [];
+
+      // Input tracking & Smoothing
+      let isDrawing = false;
+      let rawPoints = [];
+      let smoothedPoints = [];
+      let lastPointTime = 0;
+      let holdTimer = null;
+      let hasSnapped = false;
+
+      // 1. Paper Template Renderer (GoodNotes Ivory Grid)
+      function drawPaperGrid() {
+        bgCtx.fillStyle = '#faf8f0'; // Warm ivory paper
+        bgCtx.fillRect(0, 0, 800, 1100);
+
+        // Header margin line
+        bgCtx.strokeStyle = '#d6e4f0';
+        bgCtx.lineWidth = 1.5;
+        bgCtx.beginPath();
+        bgCtx.moveTo(0, 42);
+        bgCtx.lineTo(800, 42);
+        bgCtx.stroke();
+
+        // Grid lines (GoodNotes squared grid)
+        bgCtx.strokeStyle = '#e2ecf5';
+        bgCtx.lineWidth = 1;
+        bgCtx.beginPath();
+        for (let x = 24; x < 800; x += 24) {
+          bgCtx.moveTo(x, 42);
+          bgCtx.lineTo(x, 1100);
+        }
+        for (let y = 66; y < 1100; y += 24) {
+          bgCtx.moveTo(0, y);
+          bgCtx.lineTo(800, y);
+        }
+        bgCtx.stroke();
+      }
+
+      // 2. Exponential Moving Average (EMA) Low-Pass Smoothing
+      function smoothPoint(prev, curr, alpha = 0.65) {
+        if (!prev) return { ...curr };
+        return {
+          x: prev.x + alpha * (curr.x - prev.x),
+          y: prev.y + alpha * (curr.y - prev.y),
+          pressure: curr.pressure,
+          time: curr.time
+        };
+      }
+
+      // 3. Render High-Fidelity Stroke with Catmull-Rom Spline
+      function renderStroke(ctx, stroke) {
+        if (!stroke.points || stroke.points.length === 0) return;
+        const pts = stroke.points;
+
+        ctx.save();
+        if (stroke.tool === 'highlighter') {
+          ctx.globalAlpha = 0.40;
+          ctx.globalCompositeOperation = 'multiply';
+        } else {
+          ctx.globalAlpha = 1.0;
+          ctx.globalCompositeOperation = 'source-over';
+        }
+        ctx.strokeStyle = stroke.color;
+        ctx.fillStyle = stroke.color;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        // Single dot tap
+        if (pts.length === 1) {
+          ctx.beginPath();
+          ctx.arc(pts[0].x, pts[0].y, stroke.size / 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+          return;
+        }
+
+        // Multiple points: Catmull-Rom to Cubic Bezier curve fitting
+        ctx.lineWidth = stroke.size;
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+
+        for (let i = 1; i < pts.length; i++) {
+          const p0 = pts[i - 1];
+          const p1 = pts[i];
+          const xc = (p0.x + p1.x) / 2;
+          const yc = (p0.y + p1.y) / 2;
+          ctx.quadraticCurveTo(p0.x, p0.y, xc, yc);
+        }
+        ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
+      function redrawAllStrokes() {
+        sCtx.clearRect(0, 0, 800, 1100);
+        // Render highlighters first (so they always stay behind ink)
+        const highlighters = strokes.filter(s => s.tool === 'highlighter');
+        const pens = strokes.filter(s => s.tool !== 'highlighter');
+
+        highlighters.forEach(s => renderStroke(sCtx, s));
+        pens.forEach(s => renderStroke(sCtx, s));
+      }
+
+      // 4. Shape Detection & Hold-to-Snap Algorithm
+      function detectShape(points) {
+        if (points.length < 6) return null;
+        const first = points[0];
+        const last = points[points.length - 1];
+
+        let totalLength = 0;
+        for (let i = 1; i < points.length; i++) {
+          totalLength += Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
+        }
+        if (totalLength < 15) return null;
+
+        const directDist = Math.hypot(last.x - first.x, last.y - first.y);
+
+        // A. Straight Line
+        if (directDist / totalLength > 0.88) {
+          return {
+            type: 'line',
+            points: [{ x: first.x, y: first.y }, { x: last.x, y: last.y }]
+          };
+        }
+
+        // B. Closed Loops: Circle, Ellipse, Rectangle
+        const isClosed = directDist / totalLength < 0.28 || directDist < 35;
+        if (isClosed) {
+          let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+          for (const p of points) {
+            if (p.x < minX) minX = p.x;
+            if (p.x > maxX) maxX = p.x;
+            if (p.y < minY) minY = p.y;
+            if (p.y > maxY) maxY = p.y;
+          }
+          const w = maxX - minX;
+          const h = maxY - minY;
+          const cx = (minX + maxX) / 2;
+          const cy = (minY + maxY) / 2;
+          const avgRadius = (w + h) / 4;
+
+          // Radial variance from center
+          let radiusVariance = 0;
+          for (const p of points) {
+            const d = Math.hypot(p.x - cx, p.y - cy);
+            radiusVariance += Math.abs(d - avgRadius);
+          }
+          const circleError = radiusVariance / (points.length * avgRadius);
+          const aspect = w / (h || 1);
+
+          // Circle
+          if (circleError < 0.28 && aspect >= 0.72 && aspect <= 1.38) {
+            const circlePoints = [];
+            for (let i = 0; i <= 48; i++) {
+              const th = (i / 48) * Math.PI * 2;
+              circlePoints.push({
+                x: cx + Math.cos(th) * avgRadius,
+                y: cy + Math.sin(th) * avgRadius
+              });
+            }
+            return { type: 'circle', points: circlePoints };
+          }
+
+          // Rectangle
+          return {
+            type: 'rectangle',
+            points: [
+              { x: minX, y: minY },
+              { x: maxX, y: minY },
+              { x: maxX, y: maxY },
+              { x: minX, y: maxY },
+              { x: minX, y: minY }
+            ]
+          };
+        }
+
+        return null;
+      }
+
+      function showSnapToast(text) {
+        const toast = document.getElementById('snap-toast');
+        document.getElementById('snap-toast-text').textContent = text;
+        toast.style.display = 'flex';
+        setTimeout(() => { toast.style.display = 'none'; }, 1600);
+      }
+
+      // 5. Pointer Event Pipeline (High Frequency & Pressure Sensitive)
+      activeCanvas.addEventListener('pointerdown', (e) => {
+        isDrawing = true;
+        activeCanvas.setPointerCapture(e.pointerId);
+        hasSnapped = false;
+
+        const rect = activeCanvas.getBoundingClientRect();
+        const pt = {
+          x: (e.clientX - rect.left) * (800 / rect.width),
+          y: (e.clientY - rect.top) * (1100 / rect.height),
+          pressure: e.pressure > 0 ? e.pressure : 0.5,
+          time: Date.now()
+        };
+
+        rawPoints = [pt];
+        smoothedPoints = [pt];
+
+        if (currentTool === 'eraser') {
+          handleEraser(pt);
+          return;
+        }
+
+        // Start Hold-to-Snap Timer (380ms pause snaps into geometric shape!)
+        clearTimeout(holdTimer);
+        holdTimer = setTimeout(() => {
+          if (isDrawing && rawPoints.length > 5 && !hasSnapped && (currentTool === 'pen' || currentTool === 'finepen' || currentTool === 'shape')) {
+            const recognized = detectShape(smoothedPoints);
+            if (recognized) {
+              hasSnapped = true;
+              smoothedPoints = recognized.points;
+              aCtx.clearRect(0, 0, 800, 1100);
+              renderStroke(aCtx, {
+                tool: currentTool,
+                color: currentColor,
+                size: currentSize,
+                points: smoothedPoints
+              });
+              showSnapToast(`Snapped to ${recognized.type.toUpperCase()}!`);
+            }
+          }
+        }, 380);
+      });
+
+      activeCanvas.addEventListener('pointermove', (e) => {
+        if (!isDrawing) return;
+        const rect = activeCanvas.getBoundingClientRect();
+        const rawPt = {
+          x: (e.clientX - rect.left) * (800 / rect.width),
+          y: (e.clientY - rect.top) * (1100 / rect.height),
+          pressure: e.pressure > 0 ? e.pressure : 0.5,
+          time: Date.now()
+        };
+
+        if (currentTool === 'eraser') {
+          handleEraser(rawPt);
+          return;
+        }
+
+        // If user moves significantly, reset the hold timer
+        const lastPt = rawPoints[rawPoints.length - 1];
+        if (Math.hypot(rawPt.x - lastPt.x, rawPt.y - lastPt.y) > 8 && !hasSnapped) {
+          clearTimeout(holdTimer);
+          holdTimer = setTimeout(() => {
+            if (isDrawing && rawPoints.length > 5 && !hasSnapped && (currentTool === 'pen' || currentTool === 'finepen' || currentTool === 'shape')) {
+              const recognized = detectShape(smoothedPoints);
+              if (recognized) {
+                hasSnapped = true;
+                smoothedPoints = recognized.points;
+                aCtx.clearRect(0, 0, 800, 1100);
+                renderStroke(aCtx, {
+                  tool: currentTool,
+                  color: currentColor,
+                  size: currentSize,
+                  points: smoothedPoints
+                });
+                showSnapToast(`Snapped to ${recognized.type.toUpperCase()}!`);
+              }
+            }
+          }, 380);
+        }
+
+        rawPoints.push(rawPt);
+
+        // Apply EMA filter
+        const prevSmoothed = smoothedPoints[smoothedPoints.length - 1];
+        const smoothed = smoothPoint(prevSmoothed, rawPt, currentTool === 'finepen' ? 0.8 : 0.65);
+        smoothedPoints.push(smoothed);
+
+        // Live draw active stroke
+        aCtx.clearRect(0, 0, 800, 1100);
+        renderStroke(aCtx, {
+          tool: currentTool,
+          color: currentColor,
+          size: currentTool === 'highlighter' ? currentSize * 3.5 : currentSize,
+          points: smoothedPoints
+        });
+      });
+
+      activeCanvas.addEventListener('pointerup', () => {
+        if (!isDrawing) return;
+        isDrawing = false;
+        clearTimeout(holdTimer);
+        aCtx.clearRect(0, 0, 800, 1100);
+
+        if (currentTool === 'eraser') return;
+
+        if (smoothedPoints.length >= 1) {
+          undoStack.push([...strokes]);
+          redoStack = [];
+
+          // If explicit shape tool mode is selected (Circle, Rectangle, Line, Triangle)
+          if (currentTool === 'shape' && activeShapeMode !== 'auto' && rawPoints.length > 2) {
+            const start = rawPoints[0];
+            const end = rawPoints[rawPoints.length - 1];
+            let shapePts = [];
+
+            if (activeShapeMode === 'circle') {
+              const rad = Math.hypot(end.x - start.x, end.y - start.y);
+              for (let i = 0; i <= 48; i++) {
+                const th = (i / 48) * Math.PI * 2;
+                shapePts.push({ x: start.x + Math.cos(th) * rad, y: start.y + Math.sin(th) * rad });
+              }
+            } else if (activeShapeMode === 'rectangle') {
+              const minX = Math.min(start.x, end.x), maxX = Math.max(start.x, end.x);
+              const minY = Math.min(start.y, end.y), maxY = Math.max(start.y, end.y);
+              shapePts = [
+                { x: minX, y: minY }, { x: maxX, y: minY },
+                { x: maxX, y: maxY }, { x: minX, y: maxY }, { x: minX, y: minY }
+              ];
+            } else if (activeShapeMode === 'line') {
+              shapePts = [{ x: start.x, y: start.y }, { x: end.x, y: end.y }];
+            } else if (activeShapeMode === 'triangle') {
+              const topX = (start.x + end.x) / 2;
+              shapePts = [
+                { x: topX, y: Math.min(start.y, end.y) },
+                { x: end.x, y: Math.max(start.y, end.y) },
+                { x: start.x, y: Math.max(start.y, end.y) },
+                { x: topX, y: Math.min(start.y, end.y) }
+              ];
+            }
+            smoothedPoints = shapePts;
+          }
+
+          strokes.push({
+            id: String(Date.now()),
+            tool: currentTool,
+            color: currentColor,
+            size: currentTool === 'highlighter' ? currentSize * 3.5 : currentSize,
+            points: [...smoothedPoints]
+          });
+
+          redrawAllStrokes();
+        }
+
+        rawPoints = [];
+        smoothedPoints = [];
+      });
+
+      // Eraser Implementation (Tap to delete whole stroke or drag over points)
+      function handleEraser(pt) {
+        const radius = 22;
+        const prevCount = strokes.length;
+        strokes = strokes.filter(stroke => {
+          return !stroke.points.some(p => Math.hypot(p.x - pt.x, p.y - pt.y) <= radius);
+        });
+        if (strokes.length !== prevCount) {
+          redrawAllStrokes();
+        }
+      }
+
+      /* ========================================================
+         TOOLBAR & UI EVENT LISTENERS
+         ======================================================== */
+
+      // Tool Switching
+      document.querySelectorAll('.t-btn[data-tool]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.t-btn[data-tool]').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentTool = btn.dataset.tool;
+
+          // Toggle shape submenu if shape tool clicked
+          const submenu = document.getElementById('shape-submenu');
+          if (currentTool === 'shape') {
+            submenu.classList.toggle('show');
+          } else {
+            submenu.classList.remove('show');
+          }
+          document.getElementById('thickness-popup').classList.remove('show');
+        });
+      });
+
+      // Shape Submenu Options (Auto, Circle, Rectangle, Line, Triangle)
+      document.querySelectorAll('.sub-tool-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.sub-tool-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          activeShapeMode = btn.dataset.shape;
+          document.getElementById('shape-submenu').classList.remove('show');
+        });
+      });
+
+      // Thickness Presets
+      document.querySelectorAll('.size-preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.size-preset-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          setThickness(parseFloat(btn.dataset.size));
+        });
+      });
+
+      // Custom Thickness Slider Popup
+      const thicknessToggle = document.getElementById('btn-thickness-toggle');
+      const thicknessPopup = document.getElementById('thickness-popup');
+      const thicknessSlider = document.getElementById('thickness-slider');
+      const thicknessDisplay = document.getElementById('thickness-display');
+      const thicknessPreview = document.getElementById('thickness-preview-circle');
+
+      thicknessToggle.addEventListener('click', () => {
+        thicknessPopup.classList.toggle('show');
+        document.getElementById('shape-submenu').classList.remove('show');
+      });
+
+      thicknessSlider.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        setThickness(val);
+      });
+
+      function setThickness(val) {
+        currentSize = val;
+        thicknessDisplay.textContent = `${val}px`;
+        thicknessSlider.value = val;
+        thicknessPreview.style.width = `${Math.min(32, Math.max(3, val))}px`;
+        thicknessPreview.style.height = `${Math.min(32, Math.max(3, val))}px`;
+      }
+
+      // Color Presets
+      document.querySelectorAll('.dot-btn[data-color]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.dot-btn[data-color]').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentColor = btn.dataset.color;
+          thicknessPreview.style.background = currentColor;
+        });
+      });
+
+      // Native Color Wheel Picker
+      const nativePicker = document.getElementById('native-color-picker');
+      nativePicker.addEventListener('input', (e) => {
+        currentColor = e.target.value;
+        document.querySelectorAll('.dot-btn[data-color]').forEach(b => b.classList.remove('active'));
+        thicknessPreview.style.background = currentColor;
+      });
+
+      // Undo & Redo
+      document.getElementById('btn-undo').addEventListener('click', () => {
+        if (undoStack.length > 0) {
+          redoStack.push([...strokes]);
+          strokes = undoStack.pop();
+          redrawAllStrokes();
+        }
+      });
+
+      document.getElementById('btn-redo').addEventListener('click', () => {
+        if (redoStack.length > 0) {
+          undoStack.push([...strokes]);
+          strokes = redoStack.pop();
+          redrawAllStrokes();
+        }
+      });
+
+      // Clear Canvas
+      document.getElementById('btn-clear').addEventListener('click', () => {
+        if (strokes.length > 0) {
+          undoStack.push([...strokes]);
+          strokes = [];
+          redrawAllStrokes();
+        }
+      });
+
+      // Export PNG
+      document.getElementById('btn-export').addEventListener('click', () => {
+        const expCanvas = document.createElement('canvas');
+        expCanvas.width = 800; expCanvas.height = 1100;
+        const expCtx = expCanvas.getContext('2d');
+        expCtx.drawImage(bgCanvas, 0, 0);
+        expCtx.drawImage(strokesCanvas, 0, 0);
+        const a = document.createElement('a');
+        a.href = expCanvas.toDataURL('image/png');
+        a.download = `${activeNotebook.title}_Export.png`;
+        a.click();
+      });
+
+      // Navigation & Modals
+      function renderNotebookGrid() {
+        const grid = document.getElementById('notebook-grid');
+        grid.innerHTML = '';
+        notebooks.forEach(nb => {
+          const card = document.createElement('div');
+          card.className = 'nb-card';
+          card.innerHTML = `
+            <div class="nb-thumb" style="background:${nb.color}">
+              <div class="nb-corner"></div>
+              <div class="nb-spine"></div>
+              <div class="nb-star"><svg class="svg-icon" style="width:12px; height:12px;"><use href="#icon-star"></use></svg></div>
+            </div>
+            <div class="nb-title">${nb.title}</div>
+            <div class="nb-date">${nb.date}</div>
+          `;
+          card.addEventListener('click', () => openEditor(nb));
+          grid.appendChild(card);
+        });
+      }
+
+      function openEditor(nb) {
+        activeNotebook = nb;
+        document.getElementById('doc-tab-title').textContent = nb.title;
+        document.getElementById('view-library').classList.remove('active');
+        document.getElementById('view-editor').classList.add('active');
+        drawPaperGrid();
+        redrawAllStrokes();
+      }
+
+      document.getElementById('btn-back').addEventListener('click', () => {
+        document.getElementById('view-editor').classList.remove('active');
+        document.getElementById('view-library').classList.add('active');
+      });
+
+      const modal = document.getElementById('modal-new');
+      document.getElementById('btn-open-modal').addEventListener('click', () => modal.classList.add('show'));
+      document.getElementById('btn-cancel-modal').addEventListener('click', () => modal.classList.remove('show'));
+      document.getElementById('btn-confirm-modal').addEventListener('click', () => {
+        const title = document.getElementById('new-nb-title').value.trim() || 'Untitled Notebook';
+        notebooks.unshift({
+          id: String(Date.now()),
+          title,
+          color: '#1e3a5f',
+          date: 'Just now'
+        });
+        modal.classList.remove('show');
+        renderNotebookGrid();
+      });
+
+      // Keyboard shortcuts
+      window.addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+          e.preventDefault();
+          if (e.shiftKey) document.getElementById('btn-redo').click();
+          else document.getElementById('btn-undo').click();
+        } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'y') {
+          e.preventDefault();
+          document.getElementById('btn-redo').click();
+        }
+      });
+
+      // Initialize
+      drawPaperGrid();
+      renderNotebookGrid();
+    </script>
+  </body>
+</html>

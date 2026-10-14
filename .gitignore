@@ -1,0 +1,30 @@
+# Node dependencies
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Tauri / Rust target
+src-tauri/target/
+target/
+Cargo.lock
+
+# SQLite local databases
+*.db
+*.db-wal
+*.db-shm
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE and editors
+.vscode/
+.idea/
+*.swp
+*.swo
